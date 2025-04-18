@@ -8,8 +8,8 @@
   </style>
 </head>
 <body>
-  <h2>Streaming BLE depuis XIAO ESP32S3</h2>
-  <button onclick="connect()">Se connecter</button>
+  <h2>BLE Streaming from XIAO ESP32S3</h2>
+  <button onclick="connect()">Connect</button>
   <canvas id="chart" width="800" height="400"></canvas>
 
   <script>
@@ -52,13 +52,12 @@
         const text = new TextDecoder().decode(event.target.value).trim();
         const values = text.split(',').map(Number);
         if (values.length === 3) {
-          const now = Date.now();
           data.labels.push('');
           data.datasets[0].data.push(values[0]);
           data.datasets[1].data.push(values[1]);
           data.datasets[2].data.push(values[2]);
 
-          // Garde un historique limité
+          // Keep a limited history
           if (data.labels.length > MAX_POINTS) {
             data.labels.shift();
             data.datasets.forEach(ds => ds.data.shift());
