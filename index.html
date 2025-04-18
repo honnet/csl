@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BLE Live Plot - XIAO ESP32S3</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    canvas { max-width: 800px; }
+  </style>
+</head>
+<body>
+  <h2>Streaming BLE depuis XIAO ESP32S3</h2>
+  <button onclick="connect()">Se connecter</button>
+  <canvas id="chart" width="800" height="400"></canvas>
+
+  <script>
+    const MAX_POINTS = 100;
+    const chartCtx = document.getElementById("chart").getContext("2d");
+
+    const data = {
+      labels: [],
+      datasets: [
+        { label: "X", borderWidth: 2, data: [], borderColor: "red" },
+        { label: "Y", borderWidth: 2, data: [], borderColor: "green" },
+        { label: "Z", borderWidth: 2, data: [], borderColor: "blue" }
+      ]
+    };
+
+    const chart = new Chart(chartCtx, {
+      type: "line",
+      data: data,
+      options: {
+        animation: false,
+        responsive: true,
+        scales: {
+          y: { min: 0, max: 3000 }
+        }
+      }
+    });
+
+    async function connect() {
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ name: "XIAO_BLE" }],
+        optionalServices: ["22345678-1234-1234-1234-1234567890ab"]
+      });
+
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService("22345678-1234-1234-1234-1234567890ab");
+      const characteristic = await service.getCharacteristic("bbcdefab-1234-1234-1234-abcdefabcdef");
+
+      characteristic.startNotifications();
+      characteristic.addEventListener("characteristicvaluechanged", event => {
+        const text = new TextDecoder().decode(event.target.value).trim();
+        const values = text.split(',').map(Number);
+        if (values.length === 3) {
+          const now = Date.now();
+          data.labels.push('');
+          data.datasets[0].data.push(values[0]);
+          data.datasets[1].data.push(values[1]);
+          data.datasets[2].data.push(values[2]);
+
+          // Garde un historique limité
+          if (data.labels.length > MAX_POINTS) {
+            data.labels.shift();
+            data.datasets.forEach(ds => ds.data.shift());
+          }
+
+          chart.update();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
